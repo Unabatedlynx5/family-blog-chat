@@ -1,0 +1,28 @@
+{
+  "name": "family-blog-chat",
+  "main": "src/index.js",
+  "compatibility_date": "2025-10-08",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "GLOBAL_CHAT",
+        "class_name": "GlobalChat"
+      }
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "family_blog_db",
+      "database_id": "27f6f3e9-aa0b-438b-9caf-338439859061"
+    }
+  ],
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "GlobalChat"
+      ]
+    }
+  ]
+}
