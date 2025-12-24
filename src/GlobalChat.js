@@ -4,6 +4,7 @@ export class GlobalChat {
     this.env = env;
     // this.sockets = new Map(); // Not needed with Hibernation API
     // No need to load messages from storage anymore
+
   }
 
   async fetch(request) {
@@ -104,3 +105,7 @@ export class GlobalChat {
     console.error('[GlobalChat] WebSocket error:', error);
   }
 }
+
+// Note: Message cleanup is now handled by a scheduled worker, so this method is not needed.
+//   async cleanupMessages() {
+//     const cutoff = Date.now() - 24 * 60 * 60 * 1000; // 24 hours ago
