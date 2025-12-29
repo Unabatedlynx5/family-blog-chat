@@ -1,16 +1,19 @@
-export class GlobalChat {
-  constructor(state, env) {
+import { DurableObject } from "cloudflare:workers";
+import { Env } from "./types";
+
+export class GlobalChat extends DurableObject {
+  state: DurableObjectState;
+  env: Env;
+
+  constructor(state: DurableObjectState, env: Env) {
+    super(state, env);
     this.state = state;
     this.env = env;
-    // this.sockets = new Map(); // Not needed with Hibernation API
-    // No need to load messages from storage anymore
-
   }
 
-  async fetch(request) {
+  async fetch(request: Request): Promise<Response> {
     try {
       if (request.method === 'DELETE') {
-        // return this.cleanupMessages();
         return new Response('Not implemented', { status: 501 });
       }
 
@@ -20,21 +23,20 @@ export class GlobalChat {
       }
       
       const pair = new WebSocketPair();
-      const [client, server] = pair;
+      const client = pair[0];
+      const server = pair[1];
       
       // Use Hibernation API
       this.state.acceptWebSocket(server);
       console.log(`[GlobalChat] WebSocket accepted. Active connections: ${this.state.getWebSockets().length}`);
       
-    // Attach user info
-    server.serializeAttachment({
-      userId: request.headers.get('X-User-ID'),
-      email: request.headers.get('X-User-Email'),
-      name: request.headers.get('X-User-Name'),
-      avatar: request.headers.get('X-User-Avatar')
-    });
-    
-      // History is now fetched from D1 via API, so we don't send it here.
+      // Attach user info
+      server.serializeAttachment({
+        userId: request.headers.get('X-User-ID'),
+        email: request.headers.get('X-User-Email'),
+        name: request.headers.get('X-User-Name'),
+        avatar: request.headers.get('X-User-Avatar')
+      });
       
       return new Response(null, { status: 101, webSocket: client });
     } catch (err) {
@@ -43,11 +45,16 @@ export class GlobalChat {
     }
   }
 
-  async webSocketMessage(ws, message) {
+  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     try {
-      let data;
+      let data: any;
       try {
-        data = JSON.parse(message);
+        if (typeof message === 'string') {
+            data = JSON.parse(message);
+        } else {
+            // Handle ArrayBuffer if necessary, or ignore
+            return;
+        }
       } catch (e) {
         console.error('[GlobalChat] Invalid JSON received:', message);
         return;
@@ -57,7 +64,7 @@ export class GlobalChat {
           return;
       }
 
-      const attachment = ws.deserializeAttachment();
+      const attachment = ws.deserializeAttachment() as any;
 
       const msg = {
         id: crypto.randomUUID(),
@@ -97,15 +104,11 @@ export class GlobalChat {
     }
   }
 
-  async webSocketClose(ws, code, reason, wasClean) {
+  async webSocketClose(ws: WebSocket, code: number, reason: string, wasClean: boolean): Promise<void> {
     console.log(`[GlobalChat] WebSocket closed. Code: ${code}, Reason: ${reason}, Clean: ${wasClean}`);
   }
   
-  async webSocketError(ws, error) {
+  async webSocketError(ws: WebSocket, error: unknown): Promise<void> {
     console.error('[GlobalChat] WebSocket error:', error);
   }
 }
-
-// Note: Message cleanup is now handled by a scheduled worker, so this method is not needed.
-//   async cleanupMessages() {
-//     const cutoff = Date.now() - 24 * 60 * 60 * 1000; // 24 hours ago
