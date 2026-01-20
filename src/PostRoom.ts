@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { Env } from "./types";
+import { verifyToken } from "./auth";
 
 export class PostRoom extends DurableObject {
   sessions: Set<WebSocket>;
@@ -12,6 +13,11 @@ export class PostRoom extends DurableObject {
   }
 
   async fetch(request: Request): Promise<Response> {
+    const payload = await verifyToken(request, this.env);
+    if (!payload) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
     // Handle WebSocket upgrade (Client Connection)
     if (request.headers.get("Upgrade") === "websocket") {
       const pair = new WebSocketPair();

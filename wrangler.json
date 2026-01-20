@@ -2,6 +2,9 @@
   "name": "family-blog-chat",
   "main": "src/index.ts",
   "compatibility_date": "2025-10-08",
+  "vars": {
+    "JWT_SECRET": "ensure-this-is-set-in-dashboard-or-dev-vars"
+  },
   "durable_objects": {
     "bindings": [
       {

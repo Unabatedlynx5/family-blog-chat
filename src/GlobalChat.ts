@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { Env } from "./types";
+import { verifyToken } from "./auth";
 
 export class GlobalChat extends DurableObject {
   state: DurableObjectState;
@@ -13,6 +14,12 @@ export class GlobalChat extends DurableObject {
 
   async fetch(request: Request): Promise<Response> {
     try {
+      const payload = await verifyToken(request, this.env);
+      if (!payload) {
+        console.error('[GlobalChat] Unauthorized request');
+        return new Response("Unauthorized", { status: 401 });
+      }
+
       if (request.method === 'DELETE') {
         return new Response('Not implemented', { status: 501 });
       }
@@ -31,11 +38,12 @@ export class GlobalChat extends DurableObject {
       console.log(`[GlobalChat] WebSocket accepted. Active connections: ${this.state.getWebSockets().length}`);
       
       // Attach user info
+      // User identity from token supersedes insecure headers
       server.serializeAttachment({
-        userId: request.headers.get('X-User-ID'),
-        email: request.headers.get('X-User-Email'),
-        name: request.headers.get('X-User-Name'),
-        avatar: request.headers.get('X-User-Avatar')
+        userId: payload.sub,
+        email: payload.email,
+        name: payload.name,
+        avatar: payload.picture || payload.avatar
       });
       
       return new Response(null, { status: 101, webSocket: client });

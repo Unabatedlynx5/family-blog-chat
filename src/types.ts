@@ -4,4 +4,5 @@ export interface Env {
   GLOBAL_CHAT: DurableObjectNamespace;
   POST_ROOM: DurableObjectNamespace;
   DB: D1Database;
+  JWT_SECRET: string;
 }
